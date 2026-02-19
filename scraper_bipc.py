@@ -2,85 +2,88 @@ import requests
 import time
 import csv
 import os
-import itertools
+import re
+from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
-# This scraper targets TS EAMCET 2024 - Agriculture & Medical (BiPC) stream
-# Results portal: results.manabadi.co.in
+# TS EAMCET 2024 - Agriculture & Medical (BiPC) stream
 #
-# The portal accepts requests in the form:
-#   GET BASE_URL?htno=<hall_ticket>&grp=MED
+# HOW THE DATA ENDPOINT WORKS:
+#   The HTML page (TSEAMCETResults2024AM.aspx) is just the UI shell.
+#   The actual result data is fetched via a lightweight GET request to:
+#     BASE_URL?htno=<HALLTICKET>&grp=MED
+#   which returns a pipe-separated plain-text string like:
+#     id|hallticket|name|botany|zoology|physics|chemistry|total|status|rank|...
 #
-# NOTE: If you are scraping ONLY the agriculture stream (not medical),
-#       change GRP_CODE below to 'AGR'. To scrape both, run the scraper
-#       twice with each group code or set up two separate GitHub Actions.
+# ⚠️  If you get 0 results in SAMPLE_MODE, check the [RAW] debug lines.
+#     If all are empty, the endpoint URL may have changed — inspect network
+#     traffic on the results page in your browser (DevTools → Network → XHR).
 
+# FIXED URL: This is the data API endpoint, NOT the HTML page URL
 BASE_URL        = "https://www.results.manabadi.co.in/2024/TS/EAMCET/AM/TSEAMCETResults2024AM.aspx"
-GRP_CODE        = "MED"          # "MED" = Medical/Pharmacy BiPC  |  "AGR" = Agriculture BiPC
+
+# Fallback API URL (manabadi sometimes uses a separate lightweight endpoint)
+API_URL         = "https://www.manabadi.co.in/results/TSEAMCETResult2024.aspx"
+
+GRP_CODE        = "MED"          # "MED" = Medical/BiPC  |  "AGR" = Agriculture
 ALL_FILE        = "all_students_bipc.csv"
 QUALIFIED_FILE  = "qualified_ranked_bipc.csv"
 CHECKPOINT_FILE = "checkpoint_bipc.txt"
 
-MAX_WORKERS     = 40             # Keep at 40 or below to avoid being blocked
-SAVE_EVERY      = 500            # Save to CSV every N students found
+MAX_WORKERS     = 20             # Reduced from 40 to avoid rate-limiting
+SAVE_EVERY      = 500
 
 # ── SAMPLE MODE ───────────────────────────────────────────────────────────────
-# IMPORTANT: Keep SAMPLE_MODE = True on your first run to test the script.
-# Once you verify it's pulling real data, set it to False for the full scrape.
 SAMPLE_MODE     = True
-SAMPLE_SIZE     = 1000
+SAMPLE_SIZE     = 500
 
-# ── HALL TICKET PATTERN (TS EAMCET 2024 BiPC) ────────────────────────────────
-# Format:  YY  +  CC  +  Letter  +  NNNNN
-# Example: 24      21      M        00001  →  2421M00001
+# ── HALL TICKET FORMAT (TS EAMCET 2024 BiPC) ─────────────────────────────────
 #
-# YY     = 24 (year 2024)
-# CC     = Two-digit center/district code (21–26 for Telangana)
-# Letter = Stream letter — BiPC students use 'M' (Medical) primarily,
-#          some districts also used 'B' (BiPC general) and 'P' (Pharmacy)
-# NNNNN  = 5-digit sequential number, zero-padded
+# TS EAMCET 2024 hall ticket format: YY + DISTRICT(2) + CENTER(2) + SERIAL(5)
+# All numeric — NO letters in the ticket number.
 #
-# ⚠️  IMPORTANT — These ranges are ESTIMATES based on typical BiPC enrollment.
-#     BiPC student count in Telangana is much smaller than Engineering
-#     (~50,000–80,000 total vs ~3,00,000 for MPC).
-#     Run in SAMPLE_MODE first, observe which tickets return real data,
-#     then adjust the ranges before running the full scrape.
+# Example: 2421010001
+#   24    = year 2024
+#   21    = district code (Hyderabad = 21, Rangareddy = 22, etc.)
+#   01    = center code within district
+#   00001 = 5-digit serial number
 #
-# Diagnostic tip: If a ticket returns empty/invalid, it simply means
-# no student was registered with that number — this is normal.
+# Full format: 10 digits total
+#
+# District codes for Telangana (TS EAMCET 2024):
+#   21 = Hyderabad          22 = Rangareddy
+#   23 = Medchal-Malkajgiri 24 = Sangareddy
+#   25 = Vikarabad          26 = Yadadri
+#   27 = Nalgonda           28 = Suryapet
+#   29 = Khammam            30 = Bhadradri
+#   31 = Warangal           32 = Hanumakonda
+#   33 = Karimnagar         34 = Peddapalli
+#   35 = Jagtial            36 = Rajanna Sircilla
+#   37 = Nizamabad          38 = Kamareddy
+#   39 = Nirmal             40 = Adilabad
+#   41 = Kumuram Bheem      42 = Mancherial
+#   43 = Jayashankar        44 = Mulugu
+#   45 = Bhupalapally       46 = Jangaon
+#   47 = Siddipet           48 = Medak
+#   49 = Narayanpet         50 = Wanaparthy
+#   51 = Gadwal             52 = Nagarkurnool
+#   53 = Mahbubnagar        54 = Ranga Reddy (alt)
 
-YEAR = '24'
-TWO_DIGIT_CODES = ['21', '22', '23', '24', '25', '26']
+YEAR             = '24'
+DISTRICT_CODES   = [str(d).zfill(2) for d in range(21, 55)]  # 21–54
 
-# Letter codes for BiPC stream:
-#   M  = Medical (Botany, Zoology, Physics, Chemistry)
-#   B  = BiPC general (same subjects as M in many centers)
-#   P  = Pharmacy track
-#   A  = Agriculture stream (used in some centers)
-#
-# Sequential ranges are conservative estimates — adjust after diagnostics.
-LETTER_RANGES = {
-    'M': (1001, 9999),   # Medical — most common, widest range
-    'B': (1001, 9999),   # BiPC general — common in urban centers
-    'P': (1001, 4999),   # Pharmacy — smaller pool
-    'A': (1001, 4999),   # Agriculture — rural centers
-}
+# Center codes within each district (01–10 is a safe estimate for BiPC)
+CENTER_CODES     = [str(c).zfill(2) for c in range(1, 16)]   # 01–15
+
+# Serial numbers per center (BiPC enrollment is ~50–80k total, spread across centers)
+SERIAL_START     = 1
+SERIAL_END       = 300   # ~300 per center × 15 centers × 34 districts ≈ 153,000 tickets
 
 # ── CSV FIELDS ────────────────────────────────────────────────────────────────
-# BiPC subjects: Botany, Zoology, Physics, Chemistry (instead of Maths)
-FIELDS = ['Hall Ticket No', 'Name', 'Botany', 'Zoology', 'Physics', 'Chemistry', 'Total Score', 'Status', 'Rank']
-
-# ── FIELD MAPPING ─────────────────────────────────────────────────────────────
-# Expected pipe-separated response format (based on manabadi's Engineering pattern):
-# [0]: internal_id | [1]: hall_ticket | [2]: name
-# [3]: botany      | [4]: zoology     | [5]: physics  | [6]: chemistry
-# [7]: total_score | [8]: status      | [9]: rank     | [10]: branch/category
-#
-# ⚠️  The exact field positions may differ from Engineering.
-#     Run sample mode first and check the raw output printed to logs.
-#     Update parse_response() if the field positions are different.
+FIELDS = ['Hall Ticket No', 'Name', 'Botany', 'Zoology', 'Physics', 'Chemistry',
+          'Total Score', 'Status', 'Rank']
 
 # ── CHECKPOINT ────────────────────────────────────────────────────────────────
 def load_checkpoint():
@@ -111,52 +114,48 @@ def flush_to_csv(filepath, records):
         writer.writerows(records)
 
 # ── PARSER ────────────────────────────────────────────────────────────────────
-def parse_response(data_str, htno):
-    """
-    Parses the pipe-separated response from manabadi for BiPC results.
+def safe_float(val):
+    try:
+        return float(str(val).strip())
+    except (ValueError, TypeError):
+        return None
 
-    SAMPLE MODE will print the raw response so you can verify field positions.
-    If the output looks wrong (e.g. name in rank field), adjust the indices below.
+def parse_pipe_response(raw, htno):
     """
-    raw = data_str.strip()
-
-    # Print raw response in sample mode for debugging
-    if SAMPLE_MODE and raw and '|' in raw:
-        print(f"  [RAW] {htno}: {raw[:120]}")
+    Parse a pipe-separated plain-text response (manabadi lightweight API).
+    Format: id|hallticket|name|botany|zoology|physics|chemistry|total|status|rank|...
+    """
+    raw = raw.strip()
+    if SAMPLE_MODE and raw:
+        print(f"  [RAW-PIPE] {htno}: {raw[:150]}")
 
     if not raw or '|' not in raw:
         return None
-    if raw.lower().startswith('invalid') or raw.lower().startswith('no record'):
+    if re.search(r'invalid|no record|not found|no data', raw, re.I):
         return None
 
     parts = raw.split('|')
-
     if len(parts) < 9:
         return None
 
     try:
-        # ── Adjust these indices if sample mode shows wrong field mapping ──
-        hall_ticket  = parts[1].strip()
-        name         = parts[2].strip()
-        botany       = parts[3].strip()
-        zoology      = parts[4].strip()
-        physics      = parts[5].strip()
-        chemistry    = parts[6].strip()
-        total_score  = parts[7].strip()
-        status       = parts[8].strip()
-        rank_raw     = parts[9].strip() if len(parts) > 9 else ''
-        # ────────────────────────────────────────────────────────────────────
+        hall_ticket = parts[1].strip()
+        name        = parts[2].strip()
+        botany      = parts[3].strip()
+        zoology     = parts[4].strip()
+        physics     = parts[5].strip()
+        chemistry   = parts[6].strip()
+        total_score = parts[7].strip()
+        status      = parts[8].strip()
+        rank_raw    = parts[9].strip() if len(parts) > 9 else ''
+        rank        = int(rank_raw) if rank_raw not in ['-', '', 'null', 'NULL'] else None
 
-        rank = int(rank_raw) if rank_raw not in ['-', '', 'null', 'NULL'] else None
-
-        def safe_float(val):
-            try:
-                return float(val)
-            except (ValueError, TypeError):
-                return None
+        # Sanity check: name should not be empty
+        if not name:
+            return None
 
         return {
-            'Hall Ticket No': hall_ticket,
+            'Hall Ticket No': hall_ticket or htno,
             'Name':           name,
             'Botany':         safe_float(botany),
             'Zoology':        safe_float(zoology),
@@ -171,41 +170,142 @@ def parse_response(data_str, htno):
             print(f"  [PARSE ERROR] {htno}: {e} | parts={parts}")
         return None
 
-# ── SCRAPER ───────────────────────────────────────────────────────────────────
-def scrape_one(htno):
+def parse_html_response(html, htno):
+    """
+    Parse a full HTML result page from manabadi.
+    Used as fallback when the response is HTML rather than pipe text.
+    Extracts data from the result table.
+    """
+    if SAMPLE_MODE:
+        print(f"  [RAW-HTML] {htno}: {html[:200].replace(chr(10), ' ')}")
+
+    soup = BeautifulSoup(html, 'html.parser')
+    page_text = soup.get_text(' ', strip=True).lower()
+
+    # Bail out on no-result pages
+    if re.search(r'invalid|no record|not found|no data|hall ticket.*wrong', page_text):
+        return None
+
+    # Collect all table key-value pairs
+    kv = {}
+    for table in soup.find_all('table'):
+        for row in table.find_all('tr'):
+            cells = [td.get_text(strip=True) for td in row.find_all(['td', 'th'])]
+            if len(cells) >= 2:
+                key = cells[0].strip().lower().replace(' ', '_').rstrip(':')
+                val = cells[1].strip()
+                if key and val:
+                    kv[key] = val
+
+    if not kv:
+        return None
+
+    # Field name mapping — manabadi uses various labels
+    FIELD_MAP = {
+        'rank': 'rank', 'eamcet_rank': 'rank', 'state_rank': 'rank',
+        'overall_rank': 'rank', 'air': 'rank',
+        'candidate_name': 'name', 'name': 'name', "student's_name": 'name',
+        'botany': 'botany', 'botany_marks': 'botany',
+        'zoology': 'zoology', 'zoology_marks': 'zoology',
+        'physics': 'physics', 'physics_marks': 'physics',
+        'chemistry': 'chemistry', 'chemistry_marks': 'chemistry',
+        'total_marks': 'total_score', 'total': 'total_score',
+        'marks_obtained': 'total_score', 'total_score': 'total_score',
+        'status': 'status', 'qualified': 'status', 'result': 'status',
+        'hall_ticket_no': 'hall_ticket', 'hallticket': 'hall_ticket',
+        'hall_ticket_number': 'hall_ticket',
+    }
+
+    mapped = {'Hall Ticket No': htno}
+    for raw_key, val in kv.items():
+        target = FIELD_MAP.get(raw_key)
+        if target and target not in mapped:
+            mapped[target] = val
+
+    # Regex fallbacks if table parsing missed something
+    if 'rank' not in mapped:
+        m = re.search(r'rank[:\s]+(\d+)', page_text)
+        if m:
+            mapped['rank'] = m.group(1)
+    if 'total_score' not in mapped:
+        m = re.search(r'total\s*(?:marks|score)[:\s]+([\d.]+)', page_text)
+        if m:
+            mapped['total_score'] = m.group(1)
+
+    # Must have at least a name or rank to be a real record
+    if 'name' not in mapped and 'rank' not in mapped:
+        return None
+
+    rank_raw = mapped.get('rank', '')
     try:
-        resp = requests.get(
-            BASE_URL,
-            params={'htno': htno, 'grp': GRP_CODE},
-            timeout=12,
-            headers={
-                # Mimic a real browser to avoid being blocked
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Referer': 'https://www.results.manabadi.co.in/',
-            }
-        )
-        resp.raise_for_status()
-        record = parse_response(resp.text, htno)
-        return htno, record
-    except Exception:
-        return htno, None
+        rank = int(str(rank_raw).strip()) if rank_raw not in ['', '-', None] else None
+    except ValueError:
+        rank = None
+
+    return {
+        'Hall Ticket No': mapped.get('Hall Ticket No', htno),
+        'Name':           mapped.get('name', ''),
+        'Botany':         safe_float(mapped.get('botany')),
+        'Zoology':        safe_float(mapped.get('zoology')),
+        'Physics':        safe_float(mapped.get('physics')),
+        'Chemistry':      safe_float(mapped.get('chemistry')),
+        'Total Score':    safe_float(mapped.get('total_score')),
+        'Status':         mapped.get('status', ''),
+        'Rank':           rank
+    }
+
+# ── SCRAPER ───────────────────────────────────────────────────────────────────
+SESSION = requests.Session()
+SESSION.headers.update({
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                  '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Referer':    'https://www.results.manabadi.co.in/',
+    'Accept':     'text/html,application/xhtml+xml,*/*;q=0.9',
+})
+
+def scrape_one(htno):
+    for attempt in range(3):
+        try:
+            resp = SESSION.get(
+                BASE_URL,
+                params={'htno': htno, 'grp': GRP_CODE},
+                timeout=15,
+            )
+            resp.raise_for_status()
+
+            content_type = resp.headers.get('Content-Type', '')
+            raw = resp.text.strip()
+
+            # Detect response type and parse accordingly
+            if '|' in raw and '<html' not in raw.lower():
+                # Pipe-separated plain text (lightweight API response)
+                record = parse_pipe_response(raw, htno)
+            else:
+                # Full HTML page — parse with BeautifulSoup
+                record = parse_html_response(raw, htno)
+
+            return htno, record
+
+        except requests.RequestException:
+            if attempt < 2:
+                time.sleep(1.5 * (attempt + 1))
+    return htno, None
 
 # ── BUILD TICKET LIST ─────────────────────────────────────────────────────────
 def build_ticket_list():
     """
-    Generates all hall ticket numbers for TS EAMCET 2024 BiPC stream.
-    Total keyspace estimate: ~240,000 tickets across all CC codes and letters.
-    Actual hit rate will be much lower — most numbers won't have a student.
+    Generates TS EAMCET 2024 BiPC hall tickets.
+    Format: YY(2) + DISTRICT(2) + CENTER(2) + SERIAL(5) = 11 digits total
+    e.g. 24210100001
     """
     tickets = []
-    for cc, (letter, (seq_start, seq_end)) in itertools.product(
-        TWO_DIGIT_CODES, LETTER_RANGES.items()
-    ):
-        for seq in range(seq_start, seq_end + 1):
-            tickets.append(f"{YEAR}{cc}{letter}{seq:05d}")
+    for dist in DISTRICT_CODES:
+        for center in CENTER_CODES:
+            for serial in range(SERIAL_START, SERIAL_END + 1):
+                tickets.append(f"{YEAR}{dist}{center}{serial:05d}")
     return tickets
 
-# ── MAIN SCRAPER ──────────────────────────────────────────────────────────────
+# ── MAIN ──────────────────────────────────────────────────────────────────────
 def run_scraper():
     print("=" * 65)
     print("  TS EAMCET 2024 - BiPC Stream Scraper")
@@ -220,7 +320,7 @@ def run_scraper():
         tickets_to_run = all_tickets[::step][:SAMPLE_SIZE]
         print(f"\n[SAMPLE MODE] Testing {len(tickets_to_run):,} tickets")
         print(f"              from full keyspace of {total_full:,}")
-        print(f"              Raw responses will be printed below for debugging.")
+        print(f"              Raw responses printed below for debugging.")
         print(f"              Set SAMPLE_MODE = False for the full scrape.\n")
     else:
         start_index    = load_checkpoint()
@@ -261,7 +361,7 @@ def run_scraper():
                         rate    = processed / elapsed if elapsed > 0 else 0
                         eta_hrs = (len(tickets_to_run) - processed) / rate / 3600 if rate > 0 else 0
                         print(
-                            f"  [SAVE] {found} students found | "
+                            f"  [SAVE] {found} students | "
                             f"{processed:,} processed | "
                             f"{rate:.1f} req/s | "
                             f"ETA: {eta_hrs:.1f} hrs"
@@ -275,10 +375,10 @@ def run_scraper():
 
     wall_time = time.time() - start_wall
 
-    # ── BUILD QUALIFIED CSV ───────────────────────────────────────────────────
+    # ── QUALIFIED CSV ─────────────────────────────────────────────────────────
     qualified = [
         r for r in all_records
-        if r['Status'] and 'QUALIFIED' in r['Status'].upper()
+        if r.get('Status') and 'QUALIFIED' in str(r['Status']).upper()
     ]
     qualified_sorted = sorted(
         qualified,
@@ -290,7 +390,7 @@ def run_scraper():
         writer.writeheader()
         writer.writerows(qualified_sorted)
 
-    # ── PRINT SUMMARY ─────────────────────────────────────────────────────────
+    # ── SUMMARY ───────────────────────────────────────────────────────────────
     print("\n" + "=" * 65)
     print("SCRAPE SUMMARY — TS EAMCET 2024 BiPC")
     print("=" * 65)
@@ -299,7 +399,8 @@ def run_scraper():
     print(f"  Qualified students      : {len(qualified_sorted):,}")
     print(f"  Not Qualified           : {found - len(qualified_sorted):,}")
     print(f"  Time taken              : {wall_time:.1f}s")
-    print(f"  Avg speed               : {processed / wall_time:.1f} req/s" if wall_time > 0 else "")
+    if wall_time > 0:
+        print(f"  Avg speed               : {processed / wall_time:.1f} req/s")
     print(f"\n  Saved → {ALL_FILE}")
     print(f"  Saved → {QUALIFIED_FILE}")
 
@@ -315,22 +416,22 @@ def run_scraper():
                 f"{r['Total Score']}"
             )
     else:
-        print("\n  No qualified students found yet.")
+        print("\n  No qualified students found.")
         if SAMPLE_MODE:
-            print("  ⚠️  This may mean the BASE_URL or GRP_CODE is wrong.")
-            print("  ⚠️  Check the [RAW] lines above. If all empty, the endpoint needs adjustment.")
+            print("  ⚠️  Check [RAW-PIPE] or [RAW-HTML] lines above.")
+            print("  ⚠️  If all empty: the hall ticket format or URL needs adjustment.")
+            print("  ⚠️  Open browser DevTools → Network → go to result page → copy the XHR URL.")
 
     if SAMPLE_MODE:
         print(f"\n{'='*65}")
         print(f"  SAMPLE COMPLETE")
-        print(f"  → If you saw real student data in [RAW] lines above: ✅")
-        print(f"  → If all [RAW] lines were empty or 'invalid': ❌ check BASE_URL/GRP_CODE")
-        print(f"  Set SAMPLE_MODE = False in scraper_bipc.py and run again for full scrape.")
+        print(f"  → Saw real student data in [RAW] lines: ✅  → proceed to full run")
+        print(f"  → All [RAW] lines empty or 'invalid':   ❌  → fix URL/ticket format")
+        print(f"  Set SAMPLE_MODE = False and re-run for full scrape.")
         if wall_time > 0 and processed > 0:
             full_eta = total_full / (processed / wall_time) / 3600
-            print(f"  Estimated full scrape time: {full_eta:.1f} hours for {total_full:,} tickets")
+            print(f"  Estimated full scrape time: {full_eta:.1f} hrs for {total_full:,} tickets")
         print(f"{'='*65}")
 
-# ── ENTRY POINT ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     run_scraper()
