@@ -26,10 +26,10 @@ jobs:
           '31', '32', '33'
         ]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -45,7 +45,7 @@ jobs:
           python main.py --scrape --year ${{ inputs.year }} --district ${{ matrix.district }} --workers ${{ inputs.workers }} --output results_${{ matrix.district }}.csv
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: results-${{ matrix.district }}
           path: results_${{ matrix.district }}.csv
@@ -57,7 +57,7 @@ jobs:
     if: always()
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: artifacts
 
