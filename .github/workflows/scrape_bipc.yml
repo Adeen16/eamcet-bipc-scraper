@@ -1,0 +1,37 @@
+name: TS EAMCET 2024 BiPC Scraper
+
+on:
+  workflow_dispatch:    # Manual trigger — click "Run workflow" in the Actions tab
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360    # 6 hour max — increase to 360 if GitHub allows (free tier limit)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run scraper in full mode
+        run: |
+          # Force SAMPLE_MODE = False for the GitHub Actions run
+          sed -i 's/SAMPLE_MODE     = True/SAMPLE_MODE     = False/' scraper_bipc.py
+          python scraper_bipc.py
+
+      - name: Commit and push CSV output to repository
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add all_students_bipc.csv qualified_ranked_bipc.csv || true
+          git diff --staged --quiet || git commit -m "BiPC scrape results [$(date +'%Y-%m-%d %H:%M UTC')]"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
