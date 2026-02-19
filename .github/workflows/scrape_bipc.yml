@@ -20,10 +20,8 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run scraper in full mode
+      - name: Run scraper in sample mode
         run: |
-          # Force SAMPLE_MODE = False for the GitHub Actions run
-          sed -i 's/SAMPLE_MODE     = True/SAMPLE_MODE     = False/' scraper_bipc.py
           python scraper_bipc.py
 
       - name: Commit and push CSV output to repository
