@@ -6,7 +6,7 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 360    # 6 hour max — increase to 360 if GitHub allows (free tier limit)
+    timeout-minutes: 360    # 6 hour max
 
     steps:
       - name: Checkout repository
@@ -18,7 +18,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests
+        run: pip install -r requirements.txt
 
       - name: Run scraper in full mode
         run: |
