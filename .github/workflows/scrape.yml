@@ -1,0 +1,111 @@
+name: Scrape EAMCET Results
+
+on:
+  workflow_dispatch:
+    inputs:
+      year:
+        description: 'Year to scrape (2024 or 2025)'
+        required: true
+        default: '2025'
+      workers:
+        description: 'Workers per job (concurrent browsers)'
+        required: true
+        default: '2'
+
+jobs:
+  scrape-district:
+    name: Scrape District ${{ matrix.district }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        district: [
+          '01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
+          '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',
+          '21', '22', '23', '24', '25', '26', '27', '28', '29', '30',
+          '31', '32', '33'
+        ]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Scraper
+        run: |
+          python main.py --scrape --year ${{ inputs.year }} --district ${{ matrix.district }} --workers ${{ inputs.workers }} --output results_${{ matrix.district }}.csv
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: results-${{ matrix.district }}
+          path: results_${{ matrix.district }}.csv
+
+  merge-results:
+    needs: scrape-district
+    name: Merge All Results
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: Merge CSV Files
+        run: |
+          echo "Merging results..."
+          # Find all CSVs
+          find artifacts -name "*.csv" > file_list.txt
+          
+          # Create header from the first file found using python for reliability
+          python3 -c "
+          import csv, glob, os
+          
+          files = glob.glob('artifacts/*/*.csv')
+          if not files:
+              print('No CSV files found!')
+              exit(0)
+              
+          print(f'Found {len(files)} files to merge.')
+          
+          header_written = False
+          total_rows = 0
+          
+          with open('full_eamcet_results.csv', 'w', newline='', encoding='utf-8-sig') as outfile:
+              writer = csv.writer(outfile)
+              
+              for fpath in files:
+                  try:
+                      with open(fpath, 'r', encoding='utf-8-sig') as infile:
+                          reader = csv.reader(infile)
+                          header = next(reader, None)
+                          
+                          if header and not header_written:
+                              writer.writerow(header)
+                              header_written = True
+                              
+                          if header: # File wasn't empty
+                              for row in reader:
+                                  writer.writerow(row)
+                                  total_rows += 1
+                  except Exception as e:
+                      print(f'Error reading {fpath}: {e}')
+
+          print(f'Successfully merged {total_rows} records into full_eamcet_results.csv')
+          "
+
+      - name: Upload Final Merged CSV
+        uses: actions/upload-artifact@v3
+        with:
+          name: full_eamcet_results
+          path: full_eamcet_results.csv

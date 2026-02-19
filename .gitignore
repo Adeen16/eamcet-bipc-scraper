@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.csv
+*.log
+.wdm/
+.idea/
+.vscode/
+sample_*.csv
+debug_*.py
+debug_*.log
+debug_*.txt
+debug_*.html
+debug_*.json
