@@ -6,9 +6,9 @@ on:
       districts:
         description: 'Comma-separated district codes (e.g. 11,12,13 or ALL)'
         required: true
-        default: 'ALL'
+        default: '11,12,13'
       workers:
-        description: 'Number of parallel browser workers'
+        description: 'Number of parallel browser workers (max 4 for free tier)'
         required: true
         default: '4'
       serial_start:
@@ -16,15 +16,15 @@ on:
         required: true
         default: '1000'
       serial_end:
-        description: 'Serial number end'
+        description: 'Serial number end (keep under 1850 for 3hr completion)'
         required: true
-        default: '15000'
+        default: '1850'
 
 jobs:
   scrape-all:
     name: Mega Scrape Job
     runs-on: ubuntu-latest
-    timeout-minutes: 330
+    timeout-minutes: 200
     steps:
       - uses: actions/checkout@v4
 
