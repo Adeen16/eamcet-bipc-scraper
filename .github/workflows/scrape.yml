@@ -4,27 +4,27 @@ on:
   workflow_dispatch:
     inputs:
       districts:
-        description: 'Comma-separated district codes (e.g. 11,12,13 or ALL)'
+        description: 'Districts to scrape (11,12,13 are high yield)'
         required: true
-        default: '11,12,13'
+        default: '12,11,13,14,15'
       workers:
-        description: 'Number of parallel browser workers (max 4 for free tier)'
+        description: 'MAXED OUT: 8 workers (Aggressive for free tier)'
         required: true
-        default: '4'
+        default: '8'
       serial_start:
         description: 'Serial number start'
         required: true
         default: '1000'
       serial_end:
-        description: 'Serial number end (keep under 1850 for 3hr completion)'
+        description: 'Serial number end (expanded to reach 80k)'
         required: true
-        default: '1850'
+        default: '2500'
 
 jobs:
   scrape-all:
     name: Mega Scrape Job
     runs-on: ubuntu-latest
-    timeout-minutes: 200
+    timeout-minutes: 240
     steps:
       - uses: actions/checkout@v4
 
@@ -34,6 +34,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install Chrome
+          # The specialized setup-chrome action is better for stability
         uses: browser-actions/setup-chrome@v1
 
       - name: Install Dependencies
@@ -54,7 +55,7 @@ jobs:
           echo "=== Results Summary ==="
           if [ -f github_results.csv ]; then
             LINES=$(wc -l < github_results.csv)
-            echo "Total records: $((LINES - 1))"
+            echo "Total records found in this run: $((LINES - 1))"
             head -5 github_results.csv
             echo "..."
             tail -5 github_results.csv
@@ -66,5 +67,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: eamcet-results
+          name: eamcet-results-mega
           path: github_results.csv
