@@ -51,15 +51,15 @@ FIELD_IDS = {
 # Format: YY + DD (district) + L (letter) + SSSSS (serial)
 # Example: 2411A01183
 
-# Telangana district codes (01-33)
-DISTRICT_CODES = [f"{d:02d}" for d in range(1, 34)]
+# Telangana district codes (11, 12, 13 are high yield based on sample)
+DISTRICT_CODES = ["11", "12", "13"]
 
 # Letters used in hall ticket (typically A-Z but not all are used)
 HALL_TICKET_LETTERS = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-# Serial number range
+# Serial number range (sample shows up to ~25000, but 5000 is safe start)
 SERIAL_START = 1
-SERIAL_END = 99999
+SERIAL_END = 5000
 
 # ─── Scraping Configuration ───────────────────────────────────────────
 MAX_WORKERS = 4                  # concurrent Selenium instances

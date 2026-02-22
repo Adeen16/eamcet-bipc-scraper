@@ -32,14 +32,14 @@ logger = logging.getLogger(__name__)
 def create_driver() -> webdriver.Chrome:
     """Create a headless Chrome WebDriver instance."""
     opts = Options()
-    opts.add_argument("--headless=new")
+    # opts.add_argument("--headless=new")  # DISABLED for stability/visibility
     opts.add_argument("--no-sandbox")
     opts.add_argument("--disable-dev-shm-usage")
     opts.add_argument("--disable-gpu")
     opts.add_argument("--disable-extensions")
     opts.add_argument("--disable-images")
     opts.add_argument("--blink-settings=imagesEnabled=false")
-    opts.add_argument("--window-size=1024,768")
+    opts.add_argument("--window-size=600,600")
     opts.add_argument(
         "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"

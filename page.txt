@@ -1,0 +1,249 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>Telangana EAMCET Results|EAMCET 2025|Telangana EAMCET 2025 Marks|2025 Telangana EAMCET Ranks| Manabadi.com</title>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<link rel="stylesheet" type="text/css" media="print" href="httpS://www.results.manabadi.co.in/Manabadi-results-print-css.css">
+<link rel="stylesheet" type="text/css" href="httpS://www.results.manabadi.co.in/Manabadi-results-css.css">
+<style>
+.mbr-note{margin:0px; padding:5px; font-size:12px; line-height:18px; text-align: left;}
+.mbr-note h4{font-size:20px; text-align: center;}
+ .ui-dialog .ui-dialog-title {
+    float: left;
+    margin: 0.1em 16px 0.1em 0;
+    display: none;
+  }
+  .ui-draggable .ui-dialog-titlebar {
+    cursor: move;
+    width: 0px;
+    margin-left: 270px;
+}
+.ui-widget-overlay {
+    background: #a6a6a6 url(images/ui-bg_dots-small_65_a6a6a6_2x2.png) 50% 50% repeat;
+    opacity: .90;
+    filter: Alpha(Opacity=90);
+}
+.ui-widget-content {
+    border: 1px solid #ffffff;
+    color: #333333;
+    background: rgba(245, 245, 245, 0.8);
+}
+</style>
+</head>
+<body>
+<div id="dialog" style="display: none" align = "center">
+  <div id="googlead6"></div>
+</div>
+<form name="resultsfrm" id="resultsfrm" method="get" action="Telangana-eamcet-Agriculture-Results-2025-May-10052025.htm">
+<div>
+<div class="hide">
+<div id="ADDGA01">
+<ins class="adsbygoogle" style="display: block" data-ad-client="ca-pub-2551325655874098"
+            data-ad-slot="6713161600" data-ad-format="auto"></ins>
+
+            <script>
+                (adsbygoogle = window.adsbygoogle || []).push({});
+            </script>
+    <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"  type="text/javascript"></script>
+</div>
+</div>
+<table width="780" border="0" align="center" cellpadding="0" cellspacing="0" id="tableforprint">
+<tr><td align="left" id="tr1td1" valign="top" style="text-align:right;">
+<div >
+<!--<img id="img11" name="img11" />-->
+<div style="clear:both;height:5px"></div>
+<a href="" id="href11" target="_blank" rel="nofollow"><img id="img11" src="" name="img11" src="" /></a>
+</div>
+<div id="ADDGA10">
+<div class="hide">
+<script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<ins class="adsbygoogle"
+style="display:inline-block;width:300px;height:600px"
+data-ad-client="ca-pub-2551325655874098"
+data-ad-slot="2563709209"></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+</div>
+</div>
+<div id="ADD8910">
+<div style="clear:both;height:10px"></div>
+<a href="" id="href10" target="_blank" rel="nofollow"><img id="img10" src="" name="img10" class="img" alt=""/></a>
+<div style="clear:both;height:0px"></div>
+<a href="" id="href09" target="_blank" rel="nofollow"><img id="img09" name="img09" class="img" alt=""/></a>
+<div style="clear:both;height:0px"></div>
+<a href="" id="href08" target="_blank" rel="nofollow"><img id="img08" name="img08" class="img" alt=""/></a>
+<div>
+</td>
+<td width="5"> &nbsp;</td>
+<td align="center" valign="top" width="530px">
+
+<div>
+<div style="text-align:center">
+ <div style="height:10px"></div>
+ <a href="" id="href01" target="_blank" rel="nofollow"><img src="" id="img01"  /></a>
+ <div style="height:15px"></div>
+ <a href="" id="href02" target="_blank" rel="nofollow"><img src="" id="img02" style="border:1px solid;" /></a>
+ <div style="height:5px"></div>
+</div>
+<div>
+<table width="100%" border="0" cellpadding="0" cellspacing="0" align="center">
+<tr><td bgcolor="#006699" align="center" valign="middle" ><div class="ifrtxt"><img src="https://3.bp.blogspot.com/-5_YNY8mGcwo/XKx2F9hJ_QI/AAAAAAAAEKc/jeKNZ12XOYY1Gb3l7TDwgqbS_KDZilmiACLcBGAs/s1600/logo3.jpg" alt="Manabadi.com" class="img fonttags" style="max-width:50px;">Telangana EAMCET Results 2025 - Marks & Rank Card</div></td></tr>
+</table>
+</div>
+<div style="height:5px"></div>
+<div class="hide">
+<div id="displaybox-inside">
+<div class="boxinside">
+<div>
+<table width="100%" border="0" cellspacing="0" cellpadding="0" align="center" class="tborderprint">
+<tr class="lblb"><td>Hallticket No</td>
+<td><input type="text" class="selb" name="htno" id="htno" maxlength="15" size="15" onKeyPress="javascript: return keypressFun(event);" onKeyUp="javascript: CheckLength(this);"></td>
+<td>
+<select id="Degree" name="Degree">
+<option value="0">Select-Group</option>
+<!--<option value="a">ENGG</option>-->
+<option value="a">MED</option>
+</select>
+</td>
+<td><input type="button" class="lblb" value="Submit" name="btnsubmit" id="btnsubmit" onClick="javascript:doSubmit('resultsfrm');"></td>
+<td><div class="hide"><input class="print-button" onclick="javascript: window.print();" type="button" value="Print" name="Submit"></div></td></tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+<div class="hide">
+<div id="ADDGA1314">
+</div>
+</div>
+<div style="clear:both;height:5px"></div>
+<div id="ADDMB1314">
+<a id="href13" href="" target="_blank" rel="nofollow"><img style="border:1px solid #6A951E;" id="img13" src ="" name="img13" class="img" alt=""/></a>
+<a href="" id="href14" target="_blank" rel="nofollow"><img id="img14" name="img14" class="img" style="border:1px solid #593588;" alt=""/></a>
+</div>
+<div>
+<table width="100%" border="0" cellpadding="0" cellspacing="0" align="center">
+<tr><td class="lblb"><span id="sMsg" style="color:#FF0000;">&nbsp;</span></td></tr>
+</table>
+</div>
+</div>
+<div class="displaybox">
+<div class="persondetails">
+<table width="100%" align="center" id="printtable">
+<tr class="lblb"><td><b>Name</b></td><td colspan="5"><span id="sid1"></span></td></tr>
+<tr class="lblb"><td ><b>Hallticket No</b></td><td colspan="5"><span id="sid0"></span></td></tr>
+<tr class="lblb"><td><b>Result</b></td><td><span style="color:Red; font-weight:bold; font-size:medium;"><span id="sid7"></span></span></td></tr>
+</table>
+</div>
+</div>
+<div style="clear:both;height:5px"></div>
+<div id="ADDMB1516">
+
+    <a href="" id="href15" target="_blank" rel="nofollow"><img id="img15" style="border:1px solid #6A951E;" src="" /></a>
+    <div style="height:5px"></div>
+    <a href="" id="href16" target="_blank" rel="nofollow"><img id="img16" style="border:1px solid ;" src="" /></a>
+    <div style="height:3px"></div>
+
+</div>
+<div class="displaybox">
+<div class="persondetails">
+<table width="100%" align="center" id="printtable">
+<tr class="lblb"><td><b><span>Botany</span></b></td><td><span id="sid2"></span></td><td><b>Zoology</b></td><td><span id="sid3"></span></td></tr>
+<tr class="lblb"><td><b><span>Physics</span></b></td><td><span id="sid4"></span></td><td><b>Chemistry</b></td><td><span id="sid5"></span></td></tr>
+<tr class="lblb"><td colspan="2"><b>EAMCET MARKS</b></td><td colspan="2" style="color:Red;"><span id="sid6">&nbsp;</span></td></tr>
+<tr class="lblb"><td colspan="2"><b>RANK</b></td><td colspan="2" style="color:Red; font-weight:bold; font-size:medium;"><span id="sid8"></span></td></tr>
+</table>
+</div>
+</div>
+<div style="text-align:center">
+<a id="href06" target="_blank" rel="nofollow"><img id="img06" name="img06" src="" style="border:1px solid;" /></a>
+<div style="clear:both;height:5px"></div>
+<a id="href07" target="_blank" rel="nofollow"><img id="img07" name="img07" /></a>
+</div>
+</div></td>
+<td width="5">&nbsp;</td>
+<td valign="top" align="left" id="tr1td5">
+<div>
+<a href="" id="href12" target="_blank" rel="nofollow"><img id="img12"  name="img12" class="img fonttags" /></a>
+<div style="clear:both;height:0px"></div>
+<a id="href03" target="_blank" rel="nofollow"><img id="img03" src="" name="img03" /></a>
+<div style="clear:both;height:0px"></div>
+<!--<a id="href04" target="_blank" rel="nofollow" href="https://admissions.vishwavishwani.ac.in/"><img style="border:1px solid;" id="img04" src="https://www.manacine.com/images/2024/TS/EAMCET/Vishwa-Vishwani-115-200.jpg" name="img04" /></a>
+<div style="clear:both;height:10px"></div>
+<a href="http://www.exams.manabadi.co.in/Ashoka-Apply-2024.aspx" id="href05" target="_blank" rel="nofollow"><img  id="img05" src="https://www.manacine.com/images/2024/TS/Inter/Ashoka-115-2002.jpg" name="img05" /></a>-->
+<div id="ADDGA345" class="hide">
+<script type="text/javascript">google_ad_client="ca-pub-2551325655874098";google_ad_slot="6150221999";google_ad_width=160;google_ad_height=600;</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js"></script>
+</div>
+</div>
+</td>
+</tr>
+<tr>
+<td class="lblb" colspan="5">
+<div>Category (<b>BA</b> => BC-A, <b>BB</b> => BC-B, <b>BC</b> => BC-C, <b>BD</b> => BC-D )</div>
+</td>
+</tr>
+<tr>
+<td class="cnttxt" align="left" colspan="5">
+<div id="disclaimer">
+<div><span style="color:#FF0000;">Important!! The Results provided should be used on your own risk. Manabadi is not responsible for any mistakes.</span></div>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</form>
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-929033-1"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'UA-929033-1');
+</script>
+</body>
+</html>
+<script language="javascript">document.write(unescape("%3Cscript%20language%3D%22javascript%22%3E%0D%0Afunction%20dF%28%29%0D%0A%7B%0D%0A%20%20var%20s%3D%20unescape%28%27%253Etpircs%252F%253C%253E%2522sj.5202stluseRMTECMAEST%2522%253Dcrs%2520%2522tpircsavaj%2522%253Degaugnal%2520tpircs%253C%27%29%3B%0D%0A%20%20var%20s1%3D%22%22%3B%0D%0A%20for%20%28i%3Ds.length-1%3Bi%3E%3D0%3Bi%3Di-1%29%0D%0A%20%20%7B%0D%0A%20%20%20s1+%3Ds.substr%28i%2C1%29%3B%0D%0A%20%20%7D%0D%0A%20document.write%28s1%29%3B%0D%0A%7D%0D%0AdF%28%29%3B%0D%0A%3C%2Fscript%3E"));</script>
+<script language="javascript">function CheckLength(a){if(a.value.length==14){doSubmit("resultsfrm")}};</script>
+
+<header></header>
+<!---Comments Start Click Here--->
+ <div id="Demo-Ads" class="adsdiv">  </div> 
+
+ <script language="javascript">
+ $(function() {
+  $("#Demo-Ads").load("https://www.manabadi.co.in/pagehitcounter.aspx"); 
+   }); 
+</script>
+ <!---Comments Eng Here--->
+ 
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script src="https://ajax.aspnetcdn.com/ajax/jquery.ui/1.8.9/jquery-ui.js" type="text/javascript"></script>
+<link href="https://ajax.aspnetcdn.com/ajax/jquery.ui/1.8.9/themes/blitzer/jquery-ui.css"  rel="stylesheet" type="text/css" />
+<script type="text/javascript">
+    $(function() {
+        $("#dialog").dialog({
+            modal: true,
+            autoOpen: false,
+            title: "jQuery Dialog",
+            width: 330,
+            height: 300
+        });
+
+        $("#btnsubmit").click(function() {
+            $('#dialog').dialog('open');
+
+
+        });
+
+    });
+</script>
+ <script type="text/javascript">
+    $(document).ready(function() {
+        $("#btnsubmit").click(function() {
+
+            $("#googlead6").load("https://www.results.manabadi.co.in/GoogleAdds/google300x250.htm");
+        });
+    });
+</script>
