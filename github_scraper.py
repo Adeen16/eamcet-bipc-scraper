@@ -119,41 +119,37 @@ def create_driver():
     opts.add_argument("--headless=new")
     opts.add_argument("--no-sandbox")
     opts.add_argument("--disable-dev-shm-usage")
+    opts.add_argument("--disable-blink-features=AutomationControlled")
+    opts.add_experimental_option("excludeSwitches", ["enable-automation"])
+    opts.add_experimental_option("useAutomationExtension", False)
     opts.add_argument("--disable-gpu")
     opts.add_argument("--disable-extensions")
     opts.add_argument("--mute-audio")
-    opts.add_argument("--disable-renderer-backgrounding")
-    opts.add_argument("--disable-background-timer-throttling")
-    opts.add_argument("--disable-backgrounding-occluded-windows")
-    opts.add_argument("--disable-client-side-phishing-detection")
-    opts.add_argument("--disable-default-apps")
-    opts.add_argument("--disable-hang-monitor")
-    opts.add_argument("--disable-popup-blocking")
-    opts.add_argument("--disable-prompt-on-repost")
-    opts.add_argument("--disable-sync")
-    opts.add_argument("--no-first-run")
-    opts.add_argument("--disable-crash-reporter")
     opts.add_argument("--blink-settings=imagesEnabled=false")
-    opts.add_argument("--window-size=1280,1024")
+    # Randomize window size to look more human
+    width = random.randint(1024, 1920)
+    height = random.randint(768, 1080)
+    opts.add_argument(f"--window-size={width},{height}")
     opts.add_argument("--log-level=3")
-    opts.add_argument(
-        "--user-agent=Mozilla/5.0 (X11; Linux x86_64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    )
+    
+    # Use a more modern and randomized UA
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+    ]
+    opts.add_argument(f"--user-agent={random.choice(user_agents)}")
+    
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=opts)
-    driver.set_page_load_timeout(30)
+    
+    # Hide webdriver property
+    driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+        "source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+    })
+    
+    driver.set_page_load_timeout(35)
     return driver
-
-
-def progress_reporter():
-    while True:
-        time.sleep(30)
-        elapsed = (time.time() - start_time) / 60
-        speed = total_processed / elapsed if elapsed > 0 else 0
-        print(f"[PROGRESS {elapsed:.1f}m] Found={total_found} | Processed={total_processed} | Speed={speed:.0f}/min")
-        sys.stdout.flush()
-
 
 def worker(worker_id, tickets):
     global total_processed
@@ -165,40 +161,41 @@ def worker(worker_id, tickets):
 
     try:
         driver = create_driver()
+        # Initial visit with referer
+        driver.get("https://www.google.com")
+        time.sleep(2)
         driver.get(BASE_URL)
-        time.sleep(4)
+        time.sleep(6)
 
         try:
             driver.find_element(By.ID, "htno")
             print(f"[Worker {worker_id}] Page OK, starting scrape loop...")
         except Exception:
-            print(f"[Worker {worker_id}] ERROR: Page not loaded.")
+            print(f"[Worker {worker_id}] ERROR: Page not loaded or blocked.")
             return
 
         consecutive_failures = 0
         tickets_since_restart = 0
 
         for ticket in tickets:
-            # Periodic browser restart every 300 tickets
-            if tickets_since_restart >= 300:
-                print(f"[Worker {worker_id}] Periodic restart (300 tickets)...")
+            # Periodic browser restart
+            if tickets_since_restart >= 200:
+                print(f"[Worker {worker_id}] Periodic restart (200 tickets)...")
                 try:
                     driver.quit()
                     driver = create_driver()
                     driver.get(BASE_URL)
-                    time.sleep(4)
+                    time.sleep(6)
                     tickets_since_restart = 0
-                except Exception as e:
-                    print(f"[Worker {worker_id}] Restart failed: {e}")
-                    break
+                except Exception: break
 
             try:
-                # Clear previous result and set new ticket
+                # Clear and set
                 driver.execute_script("""
-                    var els = ['sid0','sid1','sid2','sid3','sid4','sid5','sid6','sid7','sid8','sMsg'];
-                    els.forEach(function(id) {
+                    var ids = ['sid0','sid1','sid2','sid3','sid4','sid5','sid6','sid7','sid8','sMsg'];
+                    ids.forEach(id => {
                         var e = document.getElementById(id);
-                        if (e) e.innerHTML = '&nbsp;';
+                        if(e) e.innerHTML = '&nbsp;';
                     });
                     document.getElementById('htno').value = arguments[0];
                 """, ticket)
@@ -206,20 +203,19 @@ def worker(worker_id, tickets):
                 # Submit
                 driver.execute_script("doSubmit('resultsfrm');")
 
-                # Fast poll: check every 0.15s for up to 5s
+                # Fast poll: check every 0.2s for up to 8s (GitHub is slower)
                 found = False
-                for _ in range(30):
-                    time.sleep(0.15 + (random.random() * 0.05))
+                for _ in range(40):
+                    time.sleep(0.2 + (random.random() * 0.1))
                     try:
                         name = driver.find_element(By.ID, "sid1").text.strip()
-                        if name:
+                        if name and name != "\xa0":
                             found = True
                             break
                         msg = driver.find_element(By.ID, "sMsg").text.strip()
-                        if msg and msg != "\xa0" and len(msg) > 2:
+                        if msg and msg != "\xa0" and len(msg) > 5:
                             break
-                    except Exception:
-                        pass
+                    except: pass
 
                 if found:
                     try:
