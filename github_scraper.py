@@ -151,6 +151,15 @@ def create_driver():
     driver.set_page_load_timeout(35)
     return driver
 
+
+def progress_reporter():
+    while True:
+        time.sleep(30)
+        elapsed = (time.time() - start_time) / 60
+        speed = total_processed / elapsed if elapsed > 0 else 0
+        print(f"[PROGRESS {elapsed:.1f}m] Found={total_found} | Processed={total_processed} | Speed={speed:.0f}/min")
+        sys.stdout.flush()
+
 def worker(worker_id, tickets):
     global total_processed
 
