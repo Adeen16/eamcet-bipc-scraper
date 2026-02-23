@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       districts:
-        description: 'Districts to scrape (11,12,13 are high yield)'
+        description: 'Districts to scrape (11-15 are best)'
         required: true
-        default: '12,11,13,14,15'
+        default: '13,14,15,10,09'
       workers:
-        description: 'MAXED OUT: 8 workers (Aggressive for free tier)'
+        description: 'GitHub Mega Speed: 8 workers'
         required: true
         default: '8'
       serial_start:
@@ -16,9 +16,9 @@ on:
         required: true
         default: '1000'
       serial_end:
-        description: 'Serial number end (expanded to reach 80k)'
+        description: 'Serial number end (3500 ensures 10k+ records)'
         required: true
-        default: '2500'
+        default: '3500'
 
 jobs:
   scrape-all:

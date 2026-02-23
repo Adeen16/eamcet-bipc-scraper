@@ -185,8 +185,29 @@ def worker(worker_id, tickets):
 
         consecutive_failures = 0
         tickets_since_restart = 0
+        consecutive_empty = 0
+        skip_until_next_group = False
+        current_group_key = ""
 
         for ticket in tickets:
+            # Group key is Dist + Letter (e.g., "11A")
+            group_key = ticket[2:5] 
+            
+            if skip_until_next_group:
+                if group_key == current_group_key:
+                    with lock:
+                        total_processed += 1
+                    continue # Skip this ticket
+                else:
+                    skip_until_next_group = False # Found a new group, stop skipping
+            
+            # AUTO-SKIP: If we hit 100 empty tickets in a row, this range (Dist+Letter) is likely dead
+            if consecutive_empty >= 100:
+                print(f"[Worker {worker_id}] SKIPPING dead zone: {group_key} (100 empty)")
+                skip_until_next_group = True
+                current_group_key = group_key
+                consecutive_empty = 0
+                continue
             # Periodic browser restart
             if tickets_since_restart >= 200:
                 print(f"[Worker {worker_id}] Periodic restart (200 tickets)...")
@@ -212,10 +233,10 @@ def worker(worker_id, tickets):
                 # Submit
                 driver.execute_script("doSubmit('resultsfrm');")
 
-                # Fast poll: check every 0.2s for up to 8s (GitHub is slower)
+                # Fast poll: check every 0.15s (GitHub environment needs slightly more buffer)
                 found = False
                 for _ in range(40):
-                    time.sleep(0.2 + (random.random() * 0.1))
+                    time.sleep(0.15 + (random.random() * 0.05))
                     try:
                         name = driver.find_element(By.ID, "sid1").text.strip()
                         if name and name != "\xa0":
@@ -226,34 +247,37 @@ def worker(worker_id, tickets):
                             break
                     except: pass
 
-                if found:
-                    try:
-                        name      = driver.find_element(By.ID, "sid1").text.strip()
-                        htno_val  = driver.find_element(By.ID, "sid0").text.strip()
-                        botany    = driver.find_element(By.ID, "sid2").text.strip()
-                        zoology   = driver.find_element(By.ID, "sid3").text.strip()
-                        physics   = driver.find_element(By.ID, "sid4").text.strip()
-                        chemistry = driver.find_element(By.ID, "sid5").text.strip()
-                        eamcet    = driver.find_element(By.ID, "sid6").text.strip()
-                        result    = driver.find_element(By.ID, "sid7").text.strip()
-                        rank      = driver.find_element(By.ID, "sid8").text.strip()
+                    if found:
+                        consecutive_empty = 0 # Reset on hit
+                        try:
+                            name      = driver.find_element(By.ID, "sid1").text.strip()
+                            htno_val  = driver.find_element(By.ID, "sid0").text.strip()
+                            botany    = driver.find_element(By.ID, "sid2").text.strip()
+                            zoology   = driver.find_element(By.ID, "sid3").text.strip()
+                            physics   = driver.find_element(By.ID, "sid4").text.strip()
+                            chemistry = driver.find_element(By.ID, "sid5").text.strip()
+                            eamcet    = driver.find_element(By.ID, "sid6").text.strip()
+                            result    = driver.find_element(By.ID, "sid7").text.strip()
+                            rank      = driver.find_element(By.ID, "sid8").text.strip()
 
-                        if name and name.lower() != "undefined":
-                            write_result({
-                                "Hall_Ticket":  htno_val or ticket,
-                                "Name":         name,
-                                "Botany":       botany,
-                                "Zoology":      zoology,
-                                "Physics":      physics,
-                                "Chemistry":    chemistry,
-                                "EAMCET_Marks": eamcet,
-                                "Result":       result,
-                                "Rank":         rank,
-                            })
-                    except Exception as e:
-                        print(f"[Worker {worker_id}] Extraction error for {ticket}: {e}")
+                            if name and name.lower() != "undefined":
+                                write_result({
+                                    "Hall_Ticket":  htno_val or ticket,
+                                    "Name":         name,
+                                    "Botany":       botany,
+                                    "Zoology":      zoology,
+                                    "Physics":      physics,
+                                    "Chemistry":    chemistry,
+                                    "EAMCET_Marks": eamcet,
+                                    "Result":       result,
+                                    "Rank":         rank,
+                                })
+                        except Exception as e:
+                            print(f"[Worker {worker_id}] Extraction error for {ticket}: {e}")
 
-                    consecutive_failures = 0
+                        consecutive_failures = 0
+                    else:
+                        consecutive_empty += 1
 
             except Exception as e:
                 consecutive_failures += 1
