@@ -170,23 +170,34 @@ def worker(worker_id: int, tickets: list):
 
         consecutive_failures = 0
         tickets_since_restart = 0
+        skip_until_next_group = False
+        current_group_key = ""
         consecutive_empty = 0
-        current_context = ""
 
         for ticket in tickets:
-            current_context = f"Dist {ticket[2:4]} Let {ticket[4]}"
+            # Group key is Dist + Letter (e.g., "11A")
+            group_key = ticket[2:5] 
             
-            # AUTO-SKIP: If we hit 1000 empty tickets in a row, this range is dead
-            if consecutive_empty >= 1000:
-                # We skip to the next district/letter by returning (main loop handles chunks)
-                # But here we just break this worker's current chunk block if it's too dead
-                # Better: just reset and keep going, but log it.
-                pass 
+            if skip_until_next_group:
+                if group_key == current_group_key:
+                    with lock:
+                        total_processed += 1
+                    continue # Skip this ticket
+                else:
+                    skip_until_next_group = False # Found a new group, stop skipping
+            
+            # AUTO-SKIP: If we hit 100 empty tickets in a row, this range (Dist+Letter) is likely dead
+            if consecutive_empty >= 100:
+                print(f"[Worker {worker_id}] SKIPPING dead zone: {group_key} (100 empty)")
+                skip_until_next_group = True
+                current_group_key = group_key
+                consecutive_empty = 0
+                continue
 
             # Periodic browser restart
-            # Every 200 tickets to stay safe with 35 workers on 16GB
-            if tickets_since_restart >= 200:
-                print(f"[Worker {worker_id}] Periodic restart (200 tickets)...")
+            # Every 150 tickets for stability with 35 workers
+            if tickets_since_restart >= 150:
+                print(f"[Worker {worker_id}] Periodic restart (150 tickets)...")
                 try:
                     driver.quit()
                     driver = create_driver()
@@ -198,7 +209,7 @@ def worker(worker_id: int, tickets: list):
                     break
 
             try:
-                # Clear previous result via JS
+                # INSTANT SET: Clear previous result AND set new ticket via JS
                 driver.execute_script("""
                     ['sid0','sid1','sid2','sid3','sid4','sid5','sid6','sid7','sid8'].forEach(function(id){
                         var el = document.getElementById(id);
@@ -206,24 +217,20 @@ def worker(worker_id: int, tickets: list):
                     });
                     var msg = document.getElementById('sMsg');
                     if(msg) msg.innerHTML = '&nbsp;';
-                """)
+                    
+                    var htno = document.getElementById('htno');
+                    if(htno) {
+                        htno.value = arguments[0];
+                    }
+                    document.getElementById('Degree').value = 'a';
+                    doSubmit('resultsfrm');
+                """, ticket)
 
-                # Type ticket number
-                htno = driver.find_element(By.ID, "htno")
-                htno.clear()
-                htno.send_keys(ticket)
-
-                # Set MED degree
-                driver.execute_script("document.getElementById('Degree').value = 'a';")
-
-                # Submit
-                driver.execute_script("doSubmit('resultsfrm');")
-
-                # Fast poll: check every 0.12s
+                # Ultra-Fast poll: check every 0.08s
                 import random
                 found = False
-                for _ in range(35):   # 35 * (0.12 + jitter) = ~5s max
-                    time.sleep(0.12 + (random.random() * 0.03)) 
+                for _ in range(40):   # 40 * 0.08 = ~3.2s max wait
+                    time.sleep(0.08 + (random.random() * 0.02)) 
                     try:
                         name = driver.find_element(By.ID, "sid1").text.strip()
                         if name:
